@@ -10,6 +10,8 @@
 #   SERVER_PORT, DOCUMENT_ROOT
 
 APP_DIR=/home/container/www
+# Jamais de demande interactive (identifiants) : échouer tout de suite
+export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/false
 info() { echo -e "\033[1;36m[web]\033[0m $*"; }
 warn() { echo -e "\033[1;33m[web] ATTENTION :\033[0m $*"; }
 

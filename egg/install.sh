@@ -5,6 +5,8 @@
 set -uo pipefail
 
 export HOME=/tmp COMPOSER_HOME=/tmp/composer COMPOSER_ALLOW_SUPERUSER=1
+# Jamais de demande interactive (identifiants) : échouer tout de suite
+export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/false
 git config --global --add safe.directory '*'
 
 GIT_ADDRESS="${GIT_ADDRESS:-}"
@@ -34,7 +36,7 @@ elif [ -n "$GIT_ADDRESS" ]; then
     else
         echo "[SETUP] Clonage de ${GIT_ADDRESS} ${GIT_BRANCH:+(branche ${GIT_BRANCH})}"
         if ! git_auth clone ${GIT_BRANCH:+--branch "$GIT_BRANCH"} "$GIT_ADDRESS" www; then
-            echo "[ERREUR] Clonage impossible (adresse, branche ou jeton d'accès ?)."
+            echo "[ERREUR] Clonage impossible. Dépôt privé ? Renseigner GIT_ACCESS_TOKEN (voir variables du serveur)."
             exit 1
         fi
     fi
