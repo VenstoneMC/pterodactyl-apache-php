@@ -4,7 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
-    "exported_at": "2026-11-11T14:44:26+00:00",
+    "exported_at": "2026-11-11T14:58:40+00:00",
     "name": "Apache + PHP (Symfony)",
     "author": "Limeen@users.noreply.github.com",
     "description": "Apache 2 + PHP (mod_php) basé sur l'image officielle php:*-apache, reconstruite chaque semaine. Composer, git, ffmpeg, extensions gd/intl/opcache/apcu/pdo_sqlite. Clone un dépôt git, sert www/public, mise à jour + migrations au démarrage.",
@@ -87,6 +87,16 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Commandes au démarrage",
+            "description": "Commandes bin/console lancées à chaque démarrage, séparées par « ; » (elles doivent pouvoir être relancées sans risque). Vide = aucune.",
+            "env_variable": "DEPLOY_COMMANDS",
+            "default_value": "venstone:rules:import;venstone:guide:import",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
             "field_type": "text"
         },
         {
