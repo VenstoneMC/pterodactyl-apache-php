@@ -1,0 +1,103 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-11T14:24:56+00:00",
+    "name": "Apache + PHP (Symfony)",
+    "author": "Limeen@users.noreply.github.com",
+    "description": "Apache 2 + PHP (mod_php) basé sur l'image officielle php:*-apache, reconstruite chaque semaine. Composer, git, ffmpeg, extensions gd/intl/opcache/apcu/pdo_sqlite. Clone un dépôt git, sert www/public, mise à jour + migrations au démarrage.",
+    "features": null,
+    "docker_images": {
+        "PHP 8.4": "ghcr.io/venstonemc/pterodactyl-apache-php:8.4",
+        "PHP 8.5": "ghcr.io/venstonemc/pterodactyl-apache-php:8.5"
+    },
+    "file_denylist": [],
+    "startup": "start-web",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\":\"resuming normal operations\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Script d'installation de l'egg \"Apache + PHP (Symfony)\".\n# Tourne dans l'image du site (même PHP, composer, git), en root, sur /mnt/server.\n# Relançable (Reinstall) : ne supprime jamais www/ ni le .env.local existants.\nset -uo pipefail\n\nexport HOME=/tmp COMPOSER_HOME=/tmp/composer COMPOSER_ALLOW_SUPERUSER=1\ngit config --global --add safe.directory '*'\n\nGIT_ADDRESS=\"${GIT_ADDRESS:-}\"\nGIT_BRANCH=\"${GIT_BRANCH:-}\"\n\ngit_auth() {\n    if [ -n \"${GIT_ACCESS_TOKEN:-}\" ]; then\n        local basic\n        basic=$(printf '%s:%s' \"${GIT_USERNAME:-x-access-token}\" \"$GIT_ACCESS_TOKEN\" | base64 -w0)\n        git -c \"http.extraHeader=Authorization: Basic ${basic}\" \"$@\"\n    else\n        git \"$@\"\n    fi\n}\n\ncd /mnt/server || exit 1\nmkdir -p www logs tmp/sessions php\n\necho \"[SETUP] PHP $(php -r 'echo PHP_VERSION;') / $(composer --version 2>/dev/null | head -n1)\"\n\nif [ -d www/.git ]; then\n    echo \"[SETUP] Dépôt déjà présent : git pull\"\n    git_auth -C www pull --ff-only || echo \"[WARN] git pull a échoué, on garde la version actuelle.\"\nelif [ -n \"$GIT_ADDRESS\" ]; then\n    if [ -n \"$(ls -A www)\" ]; then\n        echo \"[SKIP] www/ n'est pas vide et n'est pas un dépôt git : clonage ignoré.\"\n    else\n        echo \"[SETUP] Clonage de ${GIT_ADDRESS} ${GIT_BRANCH:+(branche ${GIT_BRANCH})}\"\n        if ! git_auth clone ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$GIT_ADDRESS\" www; then\n            echo \"[ERREUR] Clonage impossible (adresse, branche ou jeton d'accès ?).\"\n            exit 1\n        fi\n    fi\nelif [ -z \"$(ls -A www)\" ]; then\n    echo \"[SETUP] Pas de dépôt git : page d'attente\"\n    mkdir -p www/public\n    echo '<!doctype html><meta charset=\"utf-8\"><title>Bientôt</title><p>Site en cours de déploiement.</p>' > www/public/index.php\nfi\n\nif [ -f www/composer.json ]; then\n    cd www || exit 1\n    if [ ! -f .env.local ] && [ ! -f .env.local.php ]; then\n        echo \"[SETUP] Création de www/.env.local (APP_ENV=prod, APP_SECRET aléatoire)\"\n        cat > .env.local <<EOF\n# Généré à l'installation. À compléter (voir README du site, section Déploiement).\nAPP_ENV=prod\nAPP_DEBUG=0\nAPP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')\n# Même valeur que web.secret dans la config du plugin AuthyVenstone\nPLUGIN_API_SECRET=\n# IP du reverse proxy devant le site, ou REMOTE_ADDR\nTRUSTED_PROXIES=\nDEFAULT_URI=https://venstone.xyz\nEOF\n        chmod 600 .env.local\n    fi\n\n    echo \"[SETUP] composer install (prod)\"\n    composer install --no-dev --optimize-autoloader --classmap-authoritative --no-interaction --no-progress \\\n        || echo \"[WARN] composer install a échoué : il sera relancé au démarrage si AUTO_UPDATE=1.\"\n    mkdir -p var storage\n    cd /mnt/server || exit 1\nfi\n\n# Wings remet de toute façon les bons droits au démarrage (check_permissions_on_boot)\nchown -R 988:988 /mnt/server 2>/dev/null || true\n\necho \"[DONE] Installation terminée.\"\n",
+            "container": "ghcr.io/venstonemc/pterodactyl-apache-php:8.4",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Dépôt git",
+            "description": "Adresse HTTPS du dépôt à cloner dans www/. Vide = pas de clonage.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "https://github.com/VenstoneMC/venstone-website.git",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Branche",
+            "description": "Branche à déployer (vide = branche par défaut du dépôt).",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Utilisateur git",
+            "description": "Seulement pour un dépôt privé.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Jeton d'accès git",
+            "description": "Dépôt privé uniquement : jeton GitHub fine-grained en lecture seule (Contents: Read) sur ce seul dépôt. Jamais écrit sur le disque.",
+            "env_variable": "GIT_ACCESS_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Mise à jour au démarrage",
+            "description": "1 = git pull + composer install à chaque démarrage. 0 = rien.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Migrations au démarrage",
+            "description": "1 = doctrine:migrations:migrate à chaque démarrage (projets Symfony).",
+            "env_variable": "RUN_MIGRATIONS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Racine web",
+            "description": "Dossier servi par Apache. Ne jamais pointer sur www/ pour un projet Symfony (exposerait .env).",
+            "env_variable": "DOCUMENT_ROOT",
+            "default_value": "/home/container/www/public",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:191",
+            "field_type": "text"
+        }
+    ]
+}

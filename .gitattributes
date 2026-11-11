@@ -1,0 +1,2 @@
+# Les scripts sont exécutés sous Linux : jamais de CRLF
+* text=auto eol=lf
